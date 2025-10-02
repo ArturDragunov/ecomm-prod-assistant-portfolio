@@ -31,6 +31,7 @@ class DataIngestion:
         
         required_vars = ["GOOGLE_API_KEY", "ASTRA_DB_API_ENDPOINT", "ASTRA_DB_APPLICATION_TOKEN", "ASTRA_DB_KEYSPACE"]
         
+        # if any env variable is missing (validated by required_vars), raise an error
         missing_vars = [var for var in required_vars if os.getenv(var) is None]
         if missing_vars:
             raise EnvironmentError(f"Missing environment variables: {missing_vars}")
@@ -91,7 +92,7 @@ class DataIngestion:
                     "rating": entry["rating"],
                     "total_reviews": entry["total_reviews"],
                     "price": entry["price"]
-            }
+            } # review is content and the rest is metadata
             doc = Document(page_content=entry["top_reviews"], metadata=metadata)
             documents.append(doc)
 
@@ -102,6 +103,7 @@ class DataIngestion:
         """
         Store documents into AstraDB vector store.
         """
+        # collection name is the db name you defined for AstraDB
         collection_name=self.config["astra_db"]["collection_name"]
         vstore = AstraDBVectorStore(
             embedding= self.model_loader.load_embeddings(),
@@ -113,6 +115,7 @@ class DataIngestion:
 
         inserted_ids = vstore.add_documents(documents)
         print(f"Successfully inserted {len(inserted_ids)} documents into AstraDB.")
+        # return loaded vector store and inserted ids
         return vstore, inserted_ids
 
     def run_pipeline(self):

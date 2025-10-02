@@ -8,19 +8,21 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.common.action_chains import ActionChains
 
-class FlipkartScraper:
+# Indian ecommerce website
+class FlipkartScraper: # todo refactor this class and use Temu
     def __init__(self, output_dir="data"):
         self.output_dir = output_dir
+        # create directory if it doesn't exist
         os.makedirs(self.output_dir, exist_ok=True)
 
-    def get_top_reviews(self,product_url,count=2):
+    def get_top_reviews(self,product_url,count=2): # by default get 2 products
         """Get the top reviews for a product.
         """
         options = uc.ChromeOptions()
         options.add_argument("--no-sandbox")
         options.add_argument("--disable-blink-features=AutomationControlled")
-        driver = uc.Chrome(options=options,use_subprocess=True)
-
+        driver = uc.Chrome(options=options,use_subprocess=True) # we scrape data using Chrome browser
+# first, we browse in Chrome using selenium, and then we scrape data using BeautifulSoup
         if not product_url.startswith("http"):
             driver.quit()
             return "No reviews found"
@@ -56,7 +58,7 @@ class FlipkartScraper:
         driver.quit()
         return " || ".join(reviews) if reviews else "No reviews found"
     
-    def scrape_flipkart_products(self, query, max_products=1, review_count=2):
+    def scrape_flipkart_products(self, query, max_products=1, review_count=2): # by default get 2 review
         """Scrape Flipkart products based on a search query.
         """
         options = uc.ChromeOptions()

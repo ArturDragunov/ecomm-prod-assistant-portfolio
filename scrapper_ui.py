@@ -9,7 +9,7 @@ output_path = "data/product_reviews.csv"
 st.title("📦 Product Review Scraper")
 
 if "product_inputs" not in st.session_state:
-    st.session_state.product_inputs = [""]
+    st.session_state.product_inputs = [""] # memory in streamlit session
 
 def add_product_input():
     st.session_state.product_inputs.append("")
@@ -55,6 +55,9 @@ if st.button("🚀 Start Scraping"):
         st.download_button("📥 Download CSV", data=open(output_path, "rb"), file_name="product_reviews.csv")
 
 # This stays OUTSIDE "if st.button('Start Scraping')"
+# for everything we have scraped, we can store in vector db
+# the idea is that with a streamlit ui we decide which products to scrape,
+# then in the background we go to marketplace, scrape data from there and store in vector db
 if "scraped_data" in st.session_state and st.button("🧠 Store in Vector DB (AstraDB)"):
     with st.spinner("📡 Initializing ingestion pipeline..."):
         try:
