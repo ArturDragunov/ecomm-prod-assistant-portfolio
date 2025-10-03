@@ -1,18 +1,28 @@
 
 import streamlit as st
-from prod_assistant.etl.data_scrapper import FlipkartScraper
+from prod_assistant.etl.data_scrapper import EuropeanEcommerceScraper
 from prod_assistant.etl.data_ingestion import DataIngestion
 import os
 
-flipkart_scraper = FlipkartScraper()
 output_path = "data/product_reviews.csv"
-st.title("📦 Product Review Scraper")
+st.title("📦 European Product Review Scraper")
 
 if "product_inputs" not in st.session_state:
     st.session_state.product_inputs = [""] # memory in streamlit session
 
 def add_product_input():
     st.session_state.product_inputs.append("")
+
+st.subheader("🌍 Choose Platform")
+platform = st.selectbox(
+    "Select e-commerce platform:",
+    ["alza", "amazon_de", "flipkart"],
+    format_func=lambda x: {
+        "alza": "🇨🇿 Alza.cz (Czech Republic)",
+        "amazon_de": "🇩🇪 Amazon.de (Germany)",
+        "flipkart": "🇮🇳 Flipkart (India)"
+    }[x]
+)
 
 st.subheader("📝 Optional Product Description")
 product_description = st.text_area("Enter product description (used as an extra search keyword):")
@@ -37,10 +47,13 @@ if st.button("🚀 Start Scraping"):
     if not product_inputs:
         st.warning("⚠️ Please enter at least one product name or a product description.")
     else:
+        # Initialize scraper with selected platform
+        scraper = EuropeanEcommerceScraper(platform=platform)
+        
         final_data = []
         for query in product_inputs:
-            st.write(f"🔍 Searching for: {query}")
-            results = flipkart_scraper.scrape_flipkart_products(query, max_products=max_products, review_count=review_count)
+            st.write(f"🔍 Searching for: {query} on {platform}")
+            results = scraper.scrape_products(query, max_products=max_products, review_count=review_count)
             final_data.extend(results)
 
         unique_products = {}
@@ -50,7 +63,7 @@ if st.button("🚀 Start Scraping"):
 
         final_data = list(unique_products.values())
         st.session_state["scraped_data"] = final_data  # store in session
-        flipkart_scraper.save_to_csv(final_data, output_path)
+        scraper.save_to_csv(final_data, output_path)
         st.success("✅ Data saved to `data/product_reviews.csv`")
         st.download_button("📥 Download CSV", data=open(output_path, "rb"), file_name="product_reviews.csv")
 

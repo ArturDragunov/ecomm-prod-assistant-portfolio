@@ -1,5 +1,5 @@
 astra_db:
-  collection_name: "ecommerce-db-artur-portfolio"
+  collection_name: "ecommerce"
 
 embedding_model:
   provider: "google"
