@@ -1,6 +1,6 @@
-from langchain_core.runnables import RunnablePassthrough
-from langchain_core.output_parsers import StrOutputParser
-from langchain_core.prompts import ChatPromptTemplate
+from langchain_core.runnables import RunnablePassthrough # give a question on runtime
+from langchain_core.output_parsers import StrOutputParser # parse the output of the llm to a string
+from langchain_core.prompts import ChatPromptTemplate # prompt template for the llm
 
 from prompt_library.prompts import PROMPT_REGISTRY, PromptType
 from retriever.retrieval import Retriever
@@ -12,14 +12,16 @@ model_loader = ModelLoader()
 
 
 def format_docs(docs) -> str:
-    """Format retrieved documents into a structured text block for the prompt."""
+    """Format retrieved documents into a structured text block for the prompt.
+    This information will be passed to the llm as context.
+    If any of the keys are missing, we will use 'N/A' as the value."""
     if not docs:
         return "No relevant documents found."
 
     formatted_chunks = []
     for d in docs:
         meta = d.metadata or {}
-        formatted = (
+        formatted = ( # it's a single multiple line string expression. You don't need + sign between the lines.
             f"Title: {meta.get('product_title', 'N/A')}\n"
             f"Price: {meta.get('price', 'N/A')}\n"
             f"Rating: {meta.get('rating', 'N/A')}\n"
@@ -34,8 +36,6 @@ def build_chain(query):
     """Build the RAG pipeline chain with retriever, prompt, LLM, and parser."""
     retriever = retriever_obj.load_retriever()
     retrieved_docs=retriever.invoke(query)
-    
-    #retrieved_contexts = [format_docs(doc) for doc in retrieved_docs]
     
     retrieved_contexts = [format_docs(retrieved_docs)]
     
@@ -67,10 +67,11 @@ def invoke_chain(query: str, debug: bool = False):
     response = chain.invoke(query)
     
     return retrieved_contexts,response
-
+# we need retrieved_contexts here because we are evaluating RAG results
+# otherwise, we could stick to just response
 
 if __name__=='__main__':
-    user_query = "Can you suggest good budget iPhone under 1,00,000 INR?"
+    user_query = "Can you suggest me a good DELL laptop?"
      
     #retriever_obj = Retriever()
     

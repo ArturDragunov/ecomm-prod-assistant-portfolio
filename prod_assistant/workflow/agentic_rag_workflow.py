@@ -23,8 +23,8 @@ class AgenticRAG:
         self.retriever_obj = Retriever()
         self.model_loader = ModelLoader()
         self.llm = self.model_loader.load_llm()
-        self.checkpointer = MemorySaver()
-        self.workflow = self._build_workflow()
+        self.checkpointer = MemorySaver() # in memory state management. For production, use PostgreSQLSaver!
+        self.workflow = self._build_workflow() # we build and then compile the workflow
         self.app = self.workflow.compile(checkpointer=self.checkpointer)
 
     # ---------- Helpers ----------
@@ -50,6 +50,8 @@ class AgenticRAG:
         last_message = messages[-1].content
 
         if any(word in last_message.lower() for word in ["price", "review", "product"]):
+            # call retriever only if the user query is related to price, review, product
+            # otherwise return the answer directly
             return {"messages": [HumanMessage(content="TOOL: retriever")]}
         else:
             prompt = ChatPromptTemplate.from_template(
@@ -110,12 +112,12 @@ class AgenticRAG:
         workflow.add_node("Rewriter", self._rewrite)
 
         workflow.add_edge(START, "Assistant")
-        workflow.add_conditional_edges(
+        workflow.add_conditional_edges( # decide if we end the pipeline or go to retriever
             "Assistant",
             lambda state: "Retriever" if "TOOL" in state["messages"][-1].content else END,
             {"Retriever": "Retriever", END: END},
         )
-        workflow.add_conditional_edges(
+        workflow.add_conditional_edges( # decide if we go to generator or rewriter after reviewing retrieved documents
             "Retriever",
             self._grade_documents,
             {"generator": "Generator", "rewriter": "Rewriter"},
@@ -129,6 +131,8 @@ class AgenticRAG:
         """Run the workflow for a given query and return the final answer."""
         result = self.app.invoke({"messages": [HumanMessage(content=query)]},
                                  config={"configurable": {"thread_id": thread_id}})
+        # thread_id -> for one single execution there will be one dedicated thread id. 
+        # Every new chat will have new thread id. Chat with the same thread id will have the same state.                           
         return result["messages"][-1].content
     
         # function call with be asscoiate

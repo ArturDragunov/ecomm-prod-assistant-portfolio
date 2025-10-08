@@ -6,13 +6,13 @@ from bs4 import BeautifulSoup
 from selenium import webdriver
 from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.chrome.options import Options
-from selenium.webdriver.common.by import By
-from selenium.webdriver.common.keys import Keys
-from selenium.webdriver.common.action_chains import ActionChains
+from selenium.webdriver.common.by import By # used to select elements on the page
+from selenium.webdriver.common.keys import Keys # used to automate scrolling and actions like click, send_keys, etc.
+from selenium.webdriver.common.action_chains import ActionChains # used to make multiple actions in a chain
 from webdriver_manager.chrome import ChromeDriverManager
 
-# European ecommerce websites scraper
-class EuropeanEcommerceScraper:
+# Ecommerce websites scraper
+class EcommerceScraper:
     def __init__(self, output_dir="data", platform="alza"):
         self.output_dir = output_dir
         self.platform = platform.lower()

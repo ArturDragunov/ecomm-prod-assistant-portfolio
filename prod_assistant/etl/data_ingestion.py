@@ -12,7 +12,7 @@ class DataIngestion:
     Class to handle data transformation and ingestion into AstraDB vector store.
     """
 
-    def __init__(self):
+    def __init__(self): # methods with __ are called render methods
         """
         Initialize environment variables, embedding model, and set CSV file path.
         """
@@ -27,7 +27,7 @@ class DataIngestion:
         """
         Load and validate required environment variables.
         """
-        load_dotenv()
+        load_dotenv() # making it compatible with both environments (local and k8s)
         
         required_vars = ["GOOGLE_API_KEY", "ASTRA_DB_API_ENDPOINT", "ASTRA_DB_APPLICATION_TOKEN", "ASTRA_DB_KEYSPACE"]
         
@@ -71,33 +71,35 @@ class DataIngestion:
         """
         Transform product data into list of LangChain Document objects.
         """
-        product_list = []
-
-        for _, row in self.product_data.iterrows():
-            product_entry = {
-                    "product_id": row["product_id"],
-                    "product_title": row["product_title"],
-                    "rating": row["rating"],
-                    "total_reviews": row["total_reviews"],
-                    "price": row["price"],
-                    "top_reviews": row["top_reviews"]
-                }
-            product_list.append(product_entry)
-
         documents = []
-        for entry in product_list:
+        
+        for _, row in self.product_data.iterrows():
             metadata = {
-                    "product_id": entry["product_id"],
-                    "product_title": entry["product_title"],
-                    "rating": entry["rating"],
-                    "total_reviews": entry["total_reviews"],
-                    "price": entry["price"]
+                "product_id": row["product_id"],
+                "product_title": row["product_title"],
+                "rating": row["rating"],
+                "total_reviews": row["total_reviews"],
+                "price": row["price"]
             } # review is content and the rest is metadata
-            doc = Document(page_content=entry["top_reviews"], metadata=metadata)
+            doc = Document(page_content=row["top_reviews"], metadata=metadata)
             documents.append(doc)
 
         print(f"Transformed {len(documents)} documents.")
         return documents
+
+# We do our own Document loader from csv instead of using CSVLoader from langchain, because we want custom metadata
+# CSVLoader puts everything to page_content, and metadata is just a path to the file
+# ***Example***:
+# Document(metadata={'source': 'D:\\\\complete_content_new\\\\llmops-batch\\\\ecomm-prod-assistant\\\\data\\\\product_reviews.csv', 'row': 1},
+#  page_content='product_id: itm7579ed94ca647\n
+# product_title: Apple iPhone 15 (Pink, 128 GB)\n
+# rating: 4.6\ntotal_reviews: 9,407\n
+# price: ₹64,900\n
+# top_reviews: 5 Worth every penny Just go for it.
+# Amazing one.Beautiful camera with super fast processor READ MORE bijaya mohanty Certified Buyer ,
+#  Baleshwar May, 2024 4317 1058 Permalink Report Abuse || 5 Fabulous!
+#  So beautiful, so elegant, just a vowww😍❤️ READ MORE Akshay Meena Certified Buyer , Jaipur Nov, 2023 897 202 Permalink Report Abuse')
+
 
     def store_in_vector_db(self, documents: List[Document]):
         """

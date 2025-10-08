@@ -13,6 +13,7 @@ import asyncio
 
 class ApiKeyManager:
     def __init__(self):
+        load_dotenv()
         self.api_keys = {
             "OPENAI_API_KEY": os.getenv("OPENAI_API_KEY"),
             "GOOGLE_API_KEY": os.getenv("GOOGLE_API_KEY"),
@@ -47,6 +48,11 @@ class ModelLoader:
     def load_embeddings(self):
         """
         Load and return embedding model from Google Generative AI.
+        
+        - An event loop is the engine that drives all async tasks in Python.
+        - asyncio.get_running_loop() checks if that engine is running.
+        - This patch ensures one exists before using Google’s embedding model.
+        - It doesn’t make your code async — it just prevents it from crashing when async code runs underneath.
         """
         try:
             model_name = self.config["embedding_model"]["model_name"]

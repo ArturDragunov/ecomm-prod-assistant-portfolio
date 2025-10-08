@@ -1,6 +1,6 @@
 
 import streamlit as st
-from prod_assistant.etl.data_scrapper import EuropeanEcommerceScraper
+from prod_assistant.etl.data_scrapper import EcommerceScraper
 from prod_assistant.etl.data_ingestion import DataIngestion
 import os
 
@@ -48,7 +48,7 @@ if st.button("🚀 Start Scraping"):
         st.warning("⚠️ Please enter at least one product name or a product description.")
     else:
         # Initialize scraper with selected platform
-        scraper = EuropeanEcommerceScraper(platform=platform)
+        scraper = EcommerceScraper(platform=platform)
         
         final_data = []
         for query in product_inputs:
