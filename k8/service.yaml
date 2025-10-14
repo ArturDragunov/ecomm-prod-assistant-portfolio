@@ -7,6 +7,8 @@ spec:
   selector:
     app: product-assistant
   ports:
+  # port is outside port and targetPort is container port
+  # similar to docker run -p <container_port>:<outside_port> --name <container_name> <image_name>
     - protocol: TCP
       port: 80
       targetPort: 8000

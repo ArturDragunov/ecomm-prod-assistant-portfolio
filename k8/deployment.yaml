@@ -5,6 +5,7 @@ metadata:
   labels:
     app: product-assistant
 spec:
+# we are running 2 replicas (2 ports)
   replicas: 2
   selector:
     matchLabels:
@@ -16,7 +17,7 @@ spec:
     spec:
       containers:
       - name: product-assistant
-        image: 459497895986.dkr.ecr.us-west-1.amazonaws.com/product-assistant:latest
+        image: 326541255324.dkr.ecr.eu-north-1.amazonaws.com/product-assistant:latest
         ports:
         - containerPort: 8000
         env:                              

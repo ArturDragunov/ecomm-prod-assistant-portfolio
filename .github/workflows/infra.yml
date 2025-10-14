@@ -19,7 +19,7 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ secrets.AWS_REGION }}
 
-      # Deploy CloudFormation Stack
+      # Deploy CloudFormation Stack. It will be created in the AWS region specified below.
       - name: Deploy CloudFormation Stack
         run: |
           aws cloudformation deploy \

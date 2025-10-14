@@ -1,6 +1,8 @@
 AWSTemplateFormatVersion: 2010-09-09
 Description: Standalone EKS Cluster with NodeGroup and ECR Repository
 
+# Cluster configuration parameters
+# 2 nodes will be running (2 ports)
 Parameters:
   ClusterName:
     Type: String
@@ -17,6 +19,7 @@ Parameters:
 
 Resources:
   ### --- VPC ---
+  # Define IP which we will expose
   VPC:
     Type: AWS::EC2::VPC
     Properties:
@@ -27,6 +30,7 @@ Resources:
         - Key: Name
           Value: EKS-VPC
 
+  # access to internet
   InternetGateway:
     Type: AWS::EC2::InternetGateway
     Properties:
@@ -39,7 +43,8 @@ Resources:
     Properties:
       VpcId: !Ref VPC
       InternetGatewayId: !Ref InternetGateway
-
+  
+  # Subnet definition
   PublicSubnet1:
     Type: AWS::EC2::Subnet
     Properties:
@@ -92,6 +97,7 @@ Resources:
 
   ### --- Security Group for EKS ---
   EKSSecurityGroup:
+  # we are exposing our application over 0.0.0.0/0 (any IP)
     Type: AWS::EC2::SecurityGroup
     Properties:
       GroupDescription: Allow communication in EKS cluster
@@ -127,7 +133,7 @@ Resources:
       ManagedPolicyArns:
         - arn:aws:iam::aws:policy/AmazonEKSClusterPolicy
 
-  ### --- EKS Cluster ---
+  ### --- EKS Cluster --- We are referring to product-assistant-cluster-latest
   EKSCluster:
     Type: AWS::EKS::Cluster
     Properties:
@@ -156,7 +162,7 @@ Resources:
         - arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly
         - arn:aws:iam::aws:policy/AmazonEKS_CNI_Policy
 
-    ### --- EKS NodeGroup ---
+    ### --- EKS NodeGroup --- We are referring to product-assistant-cluster-latest
   NodeGroup:
     Type: AWS::EKS::Nodegroup
     DependsOn: EKSCluster   # ensures cluster is ready

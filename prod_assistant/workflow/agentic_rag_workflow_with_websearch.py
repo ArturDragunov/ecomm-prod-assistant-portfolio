@@ -11,35 +11,42 @@ from utils.model_loader import ModelLoader
 from langgraph.checkpoint.memory import MemorySaver
 import asyncio
 from evaluation.ragas_eval import evaluate_context_precision, evaluate_response_relevancy
-from langchain_mcp_adapters.client import MultiServerMCPClient
+from langchain_community.tools import DuckDuckGoSearchRun
 
 
 class AgenticRAG:
-    """Agentic RAG pipeline using LangGraph + MCP (Retriever + WebSearch)."""
+    """Agentic RAG pipeline using LangGraph with Web Search (no MCP)."""
 
     class AgentState(TypedDict):
         messages: Annotated[Sequence[BaseMessage], add_messages]
-        
-    async def async_init(self):
-        self.mcp_tools = await self.mcp_client.get_tools()
 
     def __init__(self):
         self.retriever_obj = Retriever()
         self.model_loader = ModelLoader()
         self.llm = self.model_loader.load_llm()
-        self.checkpointer = MemorySaver()
-
-        # MCP Client Init
-        self.mcp_client = MultiServerMCPClient({
-            "hybrid_search": {
-                "command": "python",
-                "args": ["prod_assistant/mcp_servers/product_search_server.py"],
-                "transport": "stdio",
-            }
-        })
-        self.mcp_tools = None  # Will be loaded in async_init
-        self.workflow = self._build_workflow()
+        self.checkpointer = MemorySaver()  # in memory state management. For production, use PostgreSQLSaver!
+        
+        # Initialize web search tool
+        self.web_search_tool = DuckDuckGoSearchRun()
+        
+        self.workflow = self._build_workflow()  # we build and then compile the workflow
         self.app = self.workflow.compile(checkpointer=self.checkpointer)
+
+    # ---------- Helpers ----------
+    def _format_docs(self, docs) -> str:
+        if not docs:
+            return "No relevant documents found."
+        formatted_chunks = []
+        for d in docs:
+            meta = d.metadata or {}
+            formatted = (
+                f"Title: {meta.get('product_title', 'N/A')}\n"
+                f"Price: {meta.get('price', 'N/A')}\n"
+                f"Rating: {meta.get('rating', 'N/A')}\n"
+                f"Reviews:\n{d.page_content.strip()}"
+            )
+            formatted_chunks.append(formatted)
+        return "\n\n---\n\n".join(formatted_chunks)
 
     # ---------- Nodes ----------
     def _ai_assistant(self, state: AgentState):
@@ -48,6 +55,8 @@ class AgenticRAG:
         last_message = messages[-1].content
 
         if any(word in last_message.lower() for word in ["price", "review", "product"]):
+            # call retriever only if the user query is related to price, review, product
+            # otherwise return the answer directly
             return {"messages": [HumanMessage(content="TOOL: retriever")]}
         else:
             prompt = ChatPromptTemplate.from_template(
@@ -57,26 +66,22 @@ class AgenticRAG:
             response = chain.invoke({"question": last_message})
             return {"messages": [HumanMessage(content=response)]}
 
-    async def _vector_retriever(self, state: AgentState):
-        # you can't await inside a sync function, thus we use async def
-        # The async approach (File 2) is superior because:
-        # Non-blocking - doesn't freeze the workflow
-        # Better resource usage - doesn't create new event loops
-        # Consistent with LangGraph - LangGraph expects async nodes
-        # Scalable - multiple async operations can run concurrently
-        print("--- RETRIEVER (MCP) ---")
+    def _vector_retriever(self, state: AgentState):
+        print("--- RETRIEVER ---")
         query = state["messages"][-1].content
-        tool = next(t for t in self.mcp_tools if t.name == "get_product_info")
-        result= await tool.ainvoke({"query": query})
-        context = result if result else "No data"
+        retriever = self.retriever_obj.load_retriever()
+        docs = retriever.invoke(query)
+        context = self._format_docs(docs)
         return {"messages": [HumanMessage(content=context)]}
 
     def _web_search(self, state: AgentState):
-        print("--- WEB SEARCH (MCP) ---")
+        print("--- WEB SEARCH ---")
         query = state["messages"][-1].content
-        tool = next(t for t in self.mcp_tools if t.name == "web_search")
-        result = asyncio.run(tool.ainvoke({"query": query}))
-        context = result if result else "No data from web"
+        try:
+            result = self.web_search_tool.run(query)
+            context = result if result else "No data from web"
+        except Exception as e:
+            context = f"Error during web search: {str(e)}"
         return {"messages": [HumanMessage(content=context)]}
 
     def _grade_documents(self, state: AgentState) -> Literal["generator", "rewriter"]:
@@ -115,7 +120,6 @@ class AgenticRAG:
         new_q = chain.invoke({"question": question})
         return {"messages": [HumanMessage(content=new_q.strip())]}
 
-
     # ---------- Build Workflow ----------
     def _build_workflow(self):
         workflow = StateGraph(self.AgentState)
@@ -126,63 +130,32 @@ class AgenticRAG:
         workflow.add_node("WebSearch", self._web_search)
 
         workflow.add_edge(START, "Assistant")
-        workflow.add_conditional_edges(
+        workflow.add_conditional_edges(  # decide if we end the pipeline or go to retriever
             "Assistant",
-            
-            # lambda anon function. Syntax: <parameter/input>: <expression/return value>
-            lambda state: "Retriever" if "TOOL" in state["messages"][-1].content else END, # if assistant says TOOL, then I go to retriever tool
-            
-            { # from assistant either I go to retriever tool or I end the process
-                "Retriever": "Retriever", 
-                 END: END
-             },
+            lambda state: "Retriever" if "TOOL" in state["messages"][-1].content else END,
+            {"Retriever": "Retriever", END: END},
         )
-        workflow.add_conditional_edges(
-            
+        workflow.add_conditional_edges(  # decide if we go to generator or rewriter after reviewing retrieved documents
             "Retriever",
-            
             self._grade_documents,
-            
-            {"generator": "Generator", # if the documents are relevant (returned yes), then I go to generator
-             
-             "rewriter": "Rewriter"},
+            {"generator": "Generator", "rewriter": "Rewriter"},
         )
         workflow.add_edge("Generator", END)
-        
         workflow.add_edge("Rewriter", "WebSearch")
-        
         workflow.add_edge("WebSearch", "Generator")
-        
         return workflow
 
     # ---------- Public Run ----------
-    async def run(self, query: str, thread_id: str = "default_thread") -> str:
+    def run(self, query: str, thread_id: str = "default_thread") -> str:
         """Run the workflow for a given query and return the final answer."""
-        # Initialize MCP tools if not already done
-        if self.mcp_tools is None:
-            await self.async_init()
-        
-        result = await self.app.ainvoke({"messages": [HumanMessage(content=query)]},
-                                        config={"configurable": {"thread_id": thread_id}})
+        result = self.app.invoke({"messages": [HumanMessage(content=query)]},
+                                 config={"configurable": {"thread_id": thread_id}})
+        # thread_id -> for one single execution there will be one dedicated thread id. 
+        # Every new chat will have new thread id. Chat with the same thread id will have the same state.                           
         return result["messages"][-1].content
 
 
 if __name__ == "__main__":
     rag_agent = AgenticRAG()
-    answer = rag_agent.run("What is the price of iPhone 16?")
+    answer = rag_agent.run("What is the price of iPhone 15?")
     print("\nFinal Answer:\n", answer)
-
-# You can use either lambda for conditional edges or actual functions.
-# def route_to_retriever_or_end(state):
-#     last_message_content = state["messages"][-1].content
-#     if "TOOL" in last_message_content:
-#         return "Retriever"
-#     else:
-#         return END
-
-# # Usage in LangGraph
-# .add_conditional_edges(
-#     "some_node",
-#     route_to_retriever_or_end,  # Instead of lambda
-#     {"Retriever": "Retriever", END: END}
-# )

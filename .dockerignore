@@ -35,3 +35,32 @@ build/
 dist/
 *.egg-info/
 .eggs/
+
+# Large files and directories
+.venv/
+node_modules/
+*.pdf
+*.zip
+*.tar.gz
+*.rar
+*.7z
+
+# Git
+.git/
+.gitignore
+
+# IDE and editor files
+*.sublime-*
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db

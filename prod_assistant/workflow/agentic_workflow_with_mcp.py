@@ -26,8 +26,9 @@ class AgenticRAG:
         self.llm = self.model_loader.load_llm()
         self.checkpointer = MemorySaver()
         
-        # MCP Client Init
+        # MCP Client Init -> agentic workflow will act as a client to the MCP server
         self.mcp_client = MultiServerMCPClient({
+            # this configuration works for stdio transport. If it were http, we would need to use the url
             "product_retriever": {
                 "command": "python",
                 "args": ["prod_assistant/mcp_servers/product_search_server.py"],  # absolute path recommended
@@ -77,6 +78,8 @@ class AgenticRAG:
         print("--- RETRIEVER (MCP) ---")
         query = state["messages"][-1].content
         # Find the tool by name
+        # we are consuming vector retriever as a tool
+        # now we are calling our retriever through MCP
         tool = next(t for t in self.mcp_tools if t.name == "get_product_info")
         # Call the tool (sync wrapper)
         result = asyncio.run(tool.ainvoke({"query": query}))
