@@ -177,7 +177,8 @@ Resources:
         MaxSize: 3
         MinSize: 1
       InstanceTypes:
-        - !Ref NodeInstanceType
+        - t3.micro
+        - t2.micro
 
 
 Outputs:

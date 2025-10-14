@@ -23,6 +23,7 @@ jobs:
           aws-region: ${{ secrets.AWS_REGION }}
 
       # Check if EKS Cluster exists. If it exists, then we continue. Otherwise, we exit.
+      # It  will exist, when we trigger infra.yml workflow manually inside the github actions.
       - name: Check if EKS Cluster exists
         run: |
           if ! aws eks describe-cluster --name ${{ secrets.EKS_CLUSTER_NAME }} --region ${{ secrets.AWS_REGION }}; then
