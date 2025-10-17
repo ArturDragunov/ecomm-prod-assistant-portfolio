@@ -177,8 +177,7 @@ Resources:
         MaxSize: 3
         MinSize: 1
       InstanceTypes:
-        - t3.micro
-        - t2.micro
+        - t3.small
 
 
 Outputs:

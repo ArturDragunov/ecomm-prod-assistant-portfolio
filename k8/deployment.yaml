@@ -5,8 +5,9 @@ metadata:
   labels:
     app: product-assistant
 spec:
-# we are running 2 replicas (2 ports)
-  replicas: 2
+# we are running 2 replicas (2 ports) (we moved to 1 because of the memory constraints)
+  # replicas: 2
+  replicas: 1
   selector:
     matchLabels:
       app: product-assistant
@@ -20,6 +21,13 @@ spec:
         image: 326541255324.dkr.ecr.eu-north-1.amazonaws.com/product-assistant:latest
         ports:
         - containerPort: 8000
+        resources: 
+          requests:
+            memory: "256Mi"
+            cpu: "100m"
+          limits:
+            memory: "512Mi"
+            cpu: "200m"
         env:                              
         - name: OPENAI_API_KEY
           valueFrom:

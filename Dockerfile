@@ -8,18 +8,18 @@ WORKDIR /app
 
 # Install git and uv
 RUN apt-get update && apt-get install -y git && rm -rf /var/lib/apt/lists/*
-RUN pip install uv
+RUN pip install --no-cache-dir uv
 
 # Copy source code (first dot) and paste to the current directory (/app)
 COPY . .
 
 # Now build local package
-RUN uv sync --frozen          
+RUN uv sync --frozen --no-dev          
 
 EXPOSE 8000
 
 # Use uv run - no MCP server needed
-CMD ["uv", "run", "uvicorn", "prod_assistant.router.main:app", "--host", "0.0.0.0", "--port", "8000", "--workers", "2"]
+CMD ["uv", "run", "uvicorn", "prod_assistant.router.main:app", "--host", "0.0.0.0", "--port", "8000", "--workers", "1"]
 
 # run uvicorn properly on 0.0.0.0:8000
 # Docker with MCP server -> run server first and then uvicorn
