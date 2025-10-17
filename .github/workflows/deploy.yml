@@ -100,7 +100,7 @@ jobs:
             --from-literal=ASTRA_DB_KEYSPACE=${{ secrets.ASTRA_DB_KEYSPACE }} \
             --dry-run=client -o yaml | kubectl apply -f -
 
-      # Deploy manifests
+      # Deploy manifests -> we run k8 files to deploy the application to the EKS cluster
       - name: Apply Kubernetes manifests
         run: |
           kubectl apply -f k8/deployment.yaml
