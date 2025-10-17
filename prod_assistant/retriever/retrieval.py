@@ -3,7 +3,6 @@ from typing import List
 from langchain_astradb import AstraDBVectorStore
 from utils.config_loader import load_config
 from utils.model_loader import ModelLoader
-from dotenv import load_dotenv
 from langchain.retrievers.document_compressors import LLMChainFilter
 from langchain.retrievers import ContextualCompressionRetriever
 from evaluation.ragas_eval import evaluate_context_precision, evaluate_response_relevancy
@@ -13,11 +12,11 @@ from langchain_core.documents import Document
 # sys.path.insert(0, str(project_root))
 
 class Retriever:
-    def __init__(self):
-        """_summary_
-        """
-        load_dotenv()
-        self.model_loader=ModelLoader()
+    def __init__(self, model_loader: ModelLoader = None):
+        if model_loader is None:
+            self.model_loader = ModelLoader()
+        else:
+            self.model_loader = model_loader
         self.config=load_config()
         self.vstore = None
         self.retriever_instance = None

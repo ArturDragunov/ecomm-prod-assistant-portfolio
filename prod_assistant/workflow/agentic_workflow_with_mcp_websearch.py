@@ -24,8 +24,8 @@ class AgenticRAG:
         self.mcp_tools = await self.mcp_client.get_tools()
 
     def __init__(self):
-        self.retriever_obj = Retriever()
         self.model_loader = ModelLoader()
+        self.retriever_obj = Retriever(self.model_loader)
         self.llm = self.model_loader.load_llm()
         self.checkpointer = MemorySaver()
 

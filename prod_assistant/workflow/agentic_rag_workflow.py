@@ -20,8 +20,8 @@ class AgenticRAG:
         messages: Annotated[Sequence[BaseMessage], add_messages]
 
     def __init__(self):
-        self.retriever_obj = Retriever()
         self.model_loader = ModelLoader()
+        self.retriever_obj = Retriever(self.model_loader)
         self.llm = self.model_loader.load_llm()
         self.checkpointer = MemorySaver() # in memory state management. For production, use PostgreSQLSaver!
         self.workflow = self._build_workflow() # we build and then compile the workflow
