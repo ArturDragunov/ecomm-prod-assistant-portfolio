@@ -26,6 +26,7 @@ class ApiKeyManager:
             self.api_keys = {
                 "OPENAI_API_KEY": os.getenv("OPENAI_API_KEY"),
                 "GOOGLE_API_KEY": os.getenv("GOOGLE_API_KEY"),
+                "GROQ_API_KEY": os.getenv("GROQ_API_KEY"),
                 "ASTRA_DB_API_ENDPOINT": os.getenv("ASTRA_DB_API_ENDPOINT"),
                 "ASTRA_DB_APPLICATION_TOKEN": os.getenv("ASTRA_DB_APPLICATION_TOKEN"),
                 "ASTRA_DB_KEYSPACE": os.getenv("ASTRA_DB_KEYSPACE"),
@@ -39,6 +40,18 @@ class ApiKeyManager:
                     log.warning(f"{key} is missing from environment")
             
             ApiKeyManager._initialized = True
+    
+    def get(self, key: str):
+        """
+        Get an API key by name.
+        
+        Args:
+            key: The name of the API key to retrieve
+            
+        Returns:
+            The API key value or None if not found
+        """
+        return self.api_keys.get(key)
 
 class ModelLoader:
     """
