@@ -33,3 +33,4 @@ async def chat(msg: str = Form(...)):
     answer = rag_agent.run(msg)   # run() already returns final answer string
     print(f"Agentic Response: {answer}")
     return answer
+# uvicorn router.main:app --port 8000
